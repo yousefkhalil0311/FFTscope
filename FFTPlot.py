@@ -16,7 +16,7 @@ class FFTPlot:
 
         self.curve = self.plot.plot(self.x, self.y, pen='y')
 
-    def update(self):
+    def update(self, newPlotData : np.ndarray) -> None :
         self.y = np.zeros(self.x.size)
         self.y[np.random.randint(0, self.x.size)] = 10
         self.curve.setData(self.x, self.y)
