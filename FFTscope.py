@@ -1,33 +1,45 @@
+#python includes
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
 
+#project specific include
+from FFTPlot import FFTPlot
+
 app = pg.mkQApp("FFTScope")
 
-win = pg.PlotWidget()
-
-win.resize(800, 600)
-
+#window is dynamically resizable. Start with small window size for compatibility
+win = pg.GraphicsLayoutWidget(show=True)
 win.setWindowTitle("FFTScope")
+win.resize(640, 480)
 
-win.setLabel('bottom', 'Frequency', units='Hz')
-
+#set antialiasing for better looking plots
 pg.setConfigOptions(antialias=True)
 
-curve = pg.PlotCurveItem()
+plot1 = FFTPlot('A0', 2048, win)
+plot2 = FFTPlot('A1', 2048, win)
+plot3 = FFTPlot('A2', 2048, win)
+plot4 = FFTPlot('A3', 2048, win)
+win.nextRow()
+plot5 = FFTPlot('B0', 2048, win)
+plot6 = FFTPlot('B1', 2048, win)
+plot7 = FFTPlot('B2', 2048, win)
+plot8 = FFTPlot('B3', 2048, win)
 
-win.addItem(curve)
+def updateall():
+    plot1.update()
+    plot2.update()
+    plot3.update()
+    plot4.update()
+    plot5.update()
+    plot6.update()
+    plot7.update()
+    plot8.update()
 
-x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-y = [1, 1, 1, 1, 1, 5, 1, 1, 1, 1]
-
-def update():
-    y[np.random.randint(0, 10)] = np.random.randint(0, 10)
-    curve.setData(x, y)
 
 timer = QtCore.QTimer()
-timer.timeout.connect(update)
-timer.start(0)
+timer.timeout.connect(updateall)
+timer.start(30)
 
 
 win.show()
