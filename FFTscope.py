@@ -3,6 +3,7 @@ import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
 import time
+import struct
 
 #project specific include
 from FFTPlot import FFTPlot
@@ -10,13 +11,13 @@ from SerialTools import SerialConnection
 
 
 #name of device to connect to
-defaultDevice = '/dev/cu.usbserial-2140'
+defaultDevice = '/dev/cu.usbserial-210'
 
 #FFT size the Zynq FPGA
 FFTSIZE = 128
 
 #define serial interface and connect to device with the defaultDevice name
-serialCon = SerialConnection(baudRate=230400, timeout=0.08)
+serialCon = SerialConnection(baudRate=230400, timeout=1)
 
 
 #Function definitions begin
@@ -35,13 +36,25 @@ def autoConnect(deviceName : str = defaultDevice):
 
 
 #requests FFT data for ADC channel from device. every 4 bytes will combine to form a 32 bit word.
-def getFFTData(channel : str) -> np.ndarray: #array of 32 bit words
+def getFFTData(channel : str) -> np.ndarray | None: #return array of 32 bit words
 
-    serialCon.write(channel + '\n')
+    #serialCon.write(channel + '\n')
 
-    readData : bytes = serialCon.read(FFTSIZE * 4)
+    readData : bytes | None = serialCon.read(startCondition=bytes([0xAA, 0xDD]))
 
+    #if no valid data received or data is misaligned, return None
+    if readData is None or len(readData)%4 != 0:
+        return None
+    
     _32bitList : np.ndarray = np.frombuffer(readData, dtype=np.int32)
+
+    if np.any(_32bitList < 0):
+        print('Negative number in FFTData')
+        return None
+
+    rootValues : np.ndarray = np.sqrt(_32bitList)
+
+    rootValues[rootValues > 100000] = 100000
 
     return _32bitList
     
@@ -52,20 +65,22 @@ app = pg.mkQApp("FFTScope")
 #connect to serial device in defaultDevice param
 autoConnect()
 
-#window is dynamically resizable. Start with small window size for compatibility
+#window is dynamically resizable. Start with small window size for compatibility 
 win = pg.GraphicsLayoutWidget(show=True)
 win.setWindowTitle("FFTScope")
 win.resize(640, 480)
 
 #set antialiasing for better looking plots
 pg.setConfigOptions(antialias=True)
+pg.setConfigOptions(useOpenGL=True)
+
 
 #initialize and draw all plots
 plot1 = FFTPlot('A0', FFTSIZE, win)
 plot2 = FFTPlot('A1', FFTSIZE, win)
+win.nextRow()
 plot3 = FFTPlot('A2', FFTSIZE, win)
 plot4 = FFTPlot('A3', FFTSIZE, win)
-win.nextRow()
 #plot5 = FFTPlot('B0', FFTSIZE, win)
 #plot6 = FFTPlot('B1', FFTSIZE, win)
 #plot7 = FFTPlot('B2', FFTSIZE, win)
@@ -100,3 +115,4 @@ win.show()
 pg.exec()
 
 
+ 
